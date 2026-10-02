@@ -16,6 +16,16 @@ export const pool = new Pool({
 export async function initializeDatabase(): Promise<void> {
   // Only verify database connection
   await pool.query("SELECT 1");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      token_id UUID PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at
+      ON auth_sessions (expires_at);
+  `);
 
   // Keep existing Labour Staff databases compatible with the split loading amounts.
   await pool.query(`

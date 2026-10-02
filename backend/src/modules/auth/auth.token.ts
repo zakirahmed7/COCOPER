@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { APP_CONFIG } from '../../config/env.js';
+import { isAuthSessionActive } from './auth.session.js';
 
 const TOKEN_TTL_SECONDS = 8 * 60 * 60;
 
@@ -9,6 +10,7 @@ export interface AuthTokenClaims {
   role: string;
   isSuperAdmin: boolean;
   organizationId: string | null;
+  permissions: string[];
   jti: string;
   iat: number;
   exp: number;
@@ -29,6 +31,7 @@ export function generateAuthToken(user: {
   role: string;
   isSuperAdmin: boolean;
   organizationId: string | null;
+  permissions?: string[];
 }): AuthTokenClaims & { token: string } {
   const iat = Math.floor(Date.now() / 1000);
   const claims: AuthTokenClaims = {
@@ -37,6 +40,7 @@ export function generateAuthToken(user: {
     role: user.role,
     isSuperAdmin: user.isSuperAdmin,
     organizationId: user.organizationId,
+    permissions: user.permissions ?? [],
     jti: randomUUID(),
     iat,
     exp: iat + TOKEN_TTL_SECONDS,
@@ -59,4 +63,10 @@ export function readAuthToken(token: string): AuthTokenClaims | null {
   } catch {
     return null;
   }
+}
+
+export async function verifyAuthToken(token: string): Promise<AuthTokenClaims | null> {
+  const claims = readAuthToken(token);
+  if (!claims || !(await isAuthSessionActive(claims.jti))) return null;
+  return claims;
 }

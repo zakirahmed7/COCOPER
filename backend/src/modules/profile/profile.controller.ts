@@ -10,12 +10,12 @@ import {
   updateProfile as updateProfileService,
 } from './profile.service.js';
 import { AppError } from '../../utils/AppError.js';
-import { readAuthToken } from '../auth/auth.token.js';
+import { verifyAuthToken } from '../auth/auth.token.js';
 
-function resolveIdentity(req: Request): { userId: string; userType: 'super' | 'org' } {
+async function resolveIdentity(req: Request): Promise<{ userId: string; userType: 'super' | 'org' }> {
   const authorization = req.header('authorization') ?? '';
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-  const claims = token ? readAuthToken(token) : null;
+  const claims = token ? await verifyAuthToken(token) : null;
 
   if (claims) {
     return {
@@ -24,14 +24,7 @@ function resolveIdentity(req: Request): { userId: string; userType: 'super' | 'o
     };
   }
 
-  const userId = String(req.header('x-user-id') ?? '');
-  const userType = req.header('x-user-type') === 'super' ? 'super' : 'org';
-
-  if (!userId) {
-    throw new AppError('User identity is required', 400);
-  }
-
-  return { userId, userType };
+  throw new AppError('A valid Bearer token is required', 401);
 }
 
 export async function getProfileHandler(
@@ -40,7 +33,7 @@ export async function getProfileHandler(
   next: NextFunction
 ) {
   try {
-    const { userId, userType } = resolveIdentity(req);
+    const { userId, userType } = await resolveIdentity(req);
     const profile = await getProfileService(userId, userType);
 
     if (!profile) return next(new AppError('Profile not found', 404));
@@ -58,7 +51,7 @@ export async function updateProfileHandler(
   next: NextFunction
 ) {
   try {
-    const { userId, userType } = resolveIdentity(req);
+    const { userId, userType } = await resolveIdentity(req);
     const profile = await updateProfileService(userId, userType, req.body);
 
     if (!profile) return next(new AppError('Profile not found', 404));
@@ -76,7 +69,7 @@ export async function changePasswordHandler(
   next: NextFunction
 ) {
   try {
-    const { userId, userType } = resolveIdentity(req);
+    const { userId, userType } = await resolveIdentity(req);
     await changePasswordService(userId, userType, req.body);
 
     return res.status(200).json({ message: 'Password changed successfully' });

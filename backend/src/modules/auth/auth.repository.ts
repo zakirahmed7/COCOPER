@@ -89,6 +89,17 @@ export async function hasMobileLoginPermission(userId: string): Promise<boolean>
   return (rowCount ?? 0) > 0;
 }
 
+export async function listUserPermissions(userId: string): Promise<string[]> {
+  const { rows } = await pool.query<{ permission_code: string }>(
+    `SELECT permission_code
+     FROM user_permissions
+     WHERE user_id = $1
+     ORDER BY permission_code`,
+    [userId],
+  );
+  return rows.map((row) => row.permission_code);
+}
+
 export function toAuthUserResult(
   id: string,
   username: string,

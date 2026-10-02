@@ -1036,16 +1036,8 @@ const GunnyBagMasterPage: React.FC =
           },
 
           {
-            key: "branch_id",
-            label: "Branch",
-            width: "18%",
-            render: (row) =>
-              branches.find((branch) => branch.id === row.branch_id)?.branch_name ?? "Unassigned",
-          },
-
-          {
             key: "opening_stock",
-            label: "Opening Stock",
+            label: "Total Stock",
             width: "12%",
             render: (
               row
@@ -1118,7 +1110,7 @@ const GunnyBagMasterPage: React.FC =
 },
 
         ],
-        [branches]
+        []
       );
 
     /**

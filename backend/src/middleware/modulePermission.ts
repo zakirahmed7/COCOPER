@@ -1,12 +1,18 @@
 import type { NextFunction, Request, Response } from 'express';
-import { readAuthToken } from '../modules/auth/auth.token.js';
+import { verifyAuthToken } from '../modules/auth/auth.token.js';
 import { pool } from '../config/db.js';
 
 export function requireModulePermission(moduleCode: string, action: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authorization = req.header('authorization') ?? '';
     const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const claims = token ? readAuthToken(token) : null;
+    let claims;
+    try {
+      claims = token ? await verifyAuthToken(token) : null;
+    } catch (error) {
+      next(error);
+      return;
+    }
 
     if (!claims) {
       res.status(401).json({ success: false, message: 'Authentication is required.' });
@@ -47,7 +53,13 @@ export function requireModulePermissionForBody(
     const action = resolveAction(req);
     const authorization = req.header('authorization') ?? '';
     const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const claims = token ? readAuthToken(token) : null;
+    let claims;
+    try {
+      claims = token ? await verifyAuthToken(token) : null;
+    } catch (error) {
+      next(error);
+      return;
+    }
     if (!claims) {
       res.status(401).json({ success: false, message: 'Authentication is required.' });
       return;

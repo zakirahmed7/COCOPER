@@ -14,6 +14,7 @@
 \ir 08_owner_role_registration.sql
 \ir user_permissions.sql
 \ir 09_email_login.sql
+\ir 26_auth_sessions.sql
 \ir user_branches.sql
 \ir profile_docs.sql
 \ir warehouse_master.sql

@@ -7,9 +7,11 @@ import bcrypt from 'bcryptjs';
 import { AppError } from '../../utils/AppError.js';
 import type { LoginPayload, LoginResult } from './auth.types.js';
 import { generateAuthToken } from './auth.token.js';
+import { createAuthSession } from './auth.session.js';
 import {
   findOrgUserByEmail,
   hasMobileLoginPermission,
+  listUserPermissions,
   findSuperUserByUsername,
   toAuthUserResult,
   updateOrgUserLastLogin,
@@ -42,6 +44,7 @@ export async function loginService(payload: LoginPayload): Promise<LoginResult> 
           null
         );
       const token = generateAuthToken({ id: user.id, username: user.username, role: user.role, isSuperAdmin: user.is_super_admin, organizationId: user.organization_id });
+      await createAuthSession(token.jti, user.id, token.exp);
       console.info('auth.login', { userId: user.id, username: user.username, tokenId: token.jti });
       return { user, token: token.token, tokenId: token.jti, expiresAt: token.exp };
     }
@@ -73,7 +76,9 @@ export async function loginService(payload: LoginPayload): Promise<LoginResult> 
           false,
           orgUser.organization_id
         );
-      const token = generateAuthToken({ id: user.id, username: user.username, role: user.role, isSuperAdmin: user.is_super_admin, organizationId: user.organization_id });
+      const permissions = await listUserPermissions(user.id);
+      const token = generateAuthToken({ id: user.id, username: user.username, role: user.role, isSuperAdmin: user.is_super_admin, organizationId: user.organization_id, permissions });
+      await createAuthSession(token.jti, user.id, token.exp);
       console.info('auth.login', { userId: user.id, username: user.username, tokenId: token.jti });
       return { user, token: token.token, tokenId: token.jti, expiresAt: token.exp };
     }

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { readAuthToken } from '../auth/auth.token.js';
+import { verifyAuthToken } from '../auth/auth.token.js';
 import { getProfitLossStockSnapshot } from './profitLoss.repository.js';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -15,7 +15,7 @@ export async function getProfitLossStockSnapshotHandler(req: Request, res: Respo
   try {
     const authorization = req.header('authorization') ?? '';
     const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const claims = token ? readAuthToken(token) : null;
+    const claims = token ? await verifyAuthToken(token) : null;
     const organizationId = req.header('x-organization-id') ?? claims?.organizationId ?? null;
     const snapshot = await getProfitLossStockSnapshot(fromDate, toDate, organizationId);
     res.json({ success: true, data: snapshot });

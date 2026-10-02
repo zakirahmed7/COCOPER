@@ -16,7 +16,7 @@ import {
 } from './organization.service.js';
 import { validateOrganizationPayload } from './organization.validation.js';
 import { AppError } from '../../utils/AppError.js';
-import { readAuthToken } from '../auth/auth.token.js';
+import { verifyAuthToken } from '../auth/auth.token.js';
 
 interface OrganizationParams {
   id: string;
@@ -39,7 +39,10 @@ export async function getCurrentOrganizationHandler(
   try {
     const authorization = req.header('authorization') ?? '';
     const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const claims = token ? readAuthToken(token) : null;
+    const claims = token ? await verifyAuthToken(token) : null;
+    if (token && !claims) {
+      return next(new AppError('A valid Bearer token is required', 401));
+    }
     const requestedOrganizationId =
       req.header('x-organization-id') ||
       (req.query.organizationId as string | undefined);

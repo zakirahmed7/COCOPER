@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { readAuthToken } from '../auth/auth.token.js';
+import { verifyAuthToken } from '../auth/auth.token.js';
 import { AppError } from '../../utils/AppError.js';
 import { getMobileBootstrap as getMobileBootstrapService } from './mobile.service.js';
 import {
@@ -21,7 +21,7 @@ export async function getMobileBootstrapHandler(
 ) {
   try {
     const token = getBearerToken(req);
-    const claims = token ? readAuthToken(token) : null;
+    const claims = token ? await verifyAuthToken(token) : null;
 
     if (!claims) {
       return next(new AppError('A valid Bearer token is required', 401));
@@ -40,9 +40,9 @@ export async function getMobileBootstrapHandler(
   }
 }
 
-function getClaims(req: Request) {
+async function getClaims(req: Request) {
   const token = getBearerToken(req);
-  const claims = token ? readAuthToken(token) : null;
+  const claims = token ? await verifyAuthToken(token) : null;
   if (!claims) throw new AppError('A valid Bearer token is required', 401);
   return claims;
 }
@@ -53,7 +53,7 @@ function isUuid(value: string): boolean {
 
 export async function createMobileAttendanceHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const claims = getClaims(req);
+    const claims = await getClaims(req);
     if (claims.isSuperAdmin || !claims.organizationId) {
       return next(new AppError('Only organization users can record mobile attendance', 403));
     }
@@ -76,7 +76,7 @@ export async function createMobileAttendanceHandler(req: Request, res: Response,
 
 export async function checkoutMobileAttendanceHandler(req: Request<{ id: string }>, res: Response, next: NextFunction) {
   try {
-    const claims = getClaims(req);
+    const claims = await getClaims(req);
     if (!isUuid(req.params.id)) {
       return next(new AppError('A valid attendance id is required', 422));
     }
@@ -90,7 +90,7 @@ export async function checkoutMobileAttendanceHandler(req: Request<{ id: string 
 
 export async function listMobileAttendanceHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const claims = getClaims(req);
+    const claims = await getClaims(req);
     if (claims.isSuperAdmin || !claims.organizationId) {
       return next(new AppError('Only organization users can view mobile attendance', 403));
     }
